@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  mlflow:
+    build:
+      context: ./mlflow_setup
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_data:/app/mlruns
+
+  api_service:
+    build:
+      context: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mlflow
+
+volumes:
+  mlflow_data:
