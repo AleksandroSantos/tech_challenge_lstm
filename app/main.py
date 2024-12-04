@@ -1,16 +1,16 @@
+import numpy as np
+import yfinance as yf
 from fastapi import FastAPI
 from pydantic import BaseModel
 from keras.models import load_model
-import numpy as np
-
 from sklearn.preprocessing import MinMaxScaler
-import yfinance as yf
 
 app = FastAPI()
 
 # Carregar o modelo treinado
 model = load_model("../model/lstm_stock_model_best.h5")
 
+# Instanciar o scaler
 scaler = MinMaxScaler(feature_range=(0, 1))
 
 
@@ -22,7 +22,7 @@ class StockData(BaseModel):
     days_ahead: int
 
 
-# Função para fazer previsões
+# Função para preparar os dados
 def prepare_data(stock_symbol, start_date, end_date):
     data = yf.download(stock_symbol, start=start_date, end=end_date)
     closing_prices = data["Close"].values.reshape(-1, 1)
@@ -38,22 +38,29 @@ async def predict(stock_data: StockData):
         stock_data.end_date,
     )
 
-    days_ahead = stock_data.days_ahead
+    # Normalizar os dados
+    scaled_data = scaler.fit_transform(closing_prices)
 
-    predictions = {}
-    for i in range(days_ahead):
+    # Últimos dados para iniciar as previsões
+    input_sequence = scaled_data[-3:].reshape(
+        1, 3, 1
+    )  # Assume que a LSTM usa uma sequência de 3 timesteps
 
-        # Transforma os dados de input
-        to_predict = np.array(closing_prices[-3:]).reshape(-1, 1)
-        to_predict = scaler.fit_transform(to_predict)
-        to_predict = to_predict.reshape(1, 3, 1)
+    predictions = []
 
+    for i in range(stock_data.days_ahead):
         # Realiza a predição
-        prediction = model.predict(to_predict)
+        prediction = model.predict(input_sequence)
 
-        # Realiza a inversão do valor
-        prediction = scaler.inverse_transform(prediction)
-        predictions[f"prediction_day_{i+1}"] = prediction[0, 0]
-        
-    # Retorna a previsão
-    return list(predictions)
+        # Inversão para o valor original e conversão para float
+        prediction_original = float(scaler.inverse_transform(prediction)[0, 0])
+        predictions.append(prediction_original)
+
+        # Adiciona a previsão atual na sequência para a próxima previsão
+        new_input = np.append(
+            input_sequence[:, 1:, :], prediction.reshape(1, 1, 1), axis=1
+        )
+        input_sequence = new_input
+
+    # Retorna a lista de previsões como JSON serializável
+    return {"predictions": predictions}
