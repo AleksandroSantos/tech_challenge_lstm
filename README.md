@@ -88,37 +88,41 @@ tech_challenge_lstm/
 
 3. Construir os containers Docker:
    ```bash
-      docker-compose build
+   docker-compose build
    ```
 
 4. Inicie os containers:
    ```bash
-      docker-compose up
+   docker-compose up
    ```
 
 5. MLflow estará disponível em:
    ```bash
-    http://localhost:5000
+   http://localhost:5000
    ```
 
 ### **3. Treinamento do Modelo**
 
 1. Edite o arquivo train_model.py se quiser mudar o símbolo da ação ou datas.
+   
 2. Instale as dependências:
-```bash
+
+   ```bash
    cd model/
    pip install -r requirements.txt
-```
+   ```
+
 3. Execute o script de treinamento:
+
    ```bash
-    python model/train_model.py
+   python model/train_model.py
    ```
 
 ### **4. Acessar a API:**
 
 1. A API FastAPI estará disponível em:
    ```bash
-    http://localhost:8000
+   http://localhost:8000
    ```
    
 2. Documentação interativa da API (Swagger UI) disponível em:
@@ -126,19 +130,55 @@ tech_challenge_lstm/
    http://localhost:8000/docs
    ```
 
-### **5. Testando a API**
+## API de Previsão de Ações com LSTM
 
-Você pode usar o Postman ou curl para testar a API:
+Esta API, desenvolvida usando **FastAPI**, fornece previsões de preços de fechamento de ações com base em um modelo **LSTM (Long Short-Term Memory)** previamente treinado. A API conecta-se à plataforma **Yahoo Finance** para coletar dados históricos de preços, prepara esses dados e realiza previsões para um número configurável de dias no futuro.
 
-   ```bash
-      curl -X 'POST' \
-      'http://localhost:8000/predict/' \
-      -H 'accept: application/json' \
-      -H 'Content-Type: application/json' \
-      -d '{
-      "stock_symbol": "AAPL",
-      "start_date": "2024-10-01",
-      "end_date": "2024-11-30",
-      "days_ahead": 10
-      }'
-   ```
+---
+
+### **Funcionalidades Principais:**
+
+#### **Previsão de preços futuros:**
+- A API recebe o símbolo de uma ação (ex.: `PETR4.SA`), uma data de início e uma data de fim para coletar os dados históricos.
+- Utiliza um modelo LSTM para prever o preço de fechamento dos próximos dias, retornando uma lista de previsões.
+
+#### **Coleta automática de dados históricos:**
+- Utiliza a biblioteca **yfinance** para obter os preços de fechamento das ações entre as datas especificadas pelo usuário.
+
+#### **Transformação e normalização dos dados:**
+- Aplica normalização nos dados históricos para garantir que estejam no mesmo intervalo de valores utilizados durante o treinamento do modelo.
+- Após a previsão, os valores são convertidos de volta para o intervalo original.
+
+---
+
+### **Endpoint Disponível:**
+
+#### **`POST /predict/`**
+Este endpoint realiza a previsão dos preços das ações.
+
+**Parâmetros de entrada (JSON):**
+```json
+{
+  "stock_symbol": "string",
+  "start_date": "YYYY-MM-DD",
+  "end_date": "YYYY-MM-DD",
+  "days_ahead": integer
+}
+```
+- stock_symbol: Símbolo da ação (ex.: AAPL, PETR4.SA).
+- start_date: Data inicial para coleta dos dados históricos.
+- end_date: Data final para coleta dos dados históricos.
+- days_ahead: Número de dias a prever.
+
+**Resposta**
+```json
+{
+  "predictions": [
+    32.56,
+    33.12,
+    34.05,
+    33.87,
+    34.65
+  ]
+}
+```
