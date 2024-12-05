@@ -134,7 +134,7 @@ def train_and_evaluate(x_train, y_train, x_val, y_val, scaler, param_grid):
 
             # Logar métricas
             log_metrics(metrics)
-            # mlflow.keras.log_model(model, "lstm_model")
+            mlflow.keras.log_model(model, "lstm_model")
 
             if metrics["MAPE"] < best_mape:
                 best_mape = metrics["MAPE"]
